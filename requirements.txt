@@ -1,0 +1,5 @@
+# 程序运行仅依赖 Python 标准库（socket / threading / json / tkinter），
+# 因此没有第三方运行时依赖。
+#
+# 可选：仅在重新生成说明书插图与 Word 文档时需要
+#   pip install pillow python-docx
