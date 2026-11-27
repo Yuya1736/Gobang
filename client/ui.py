@@ -75,6 +75,7 @@ class LoginView(tk.Frame):
 
     def __init__(self, app):
         super().__init__(app, bg=APP_BG)
+        self.app = app
         cfg = app.config_data
         outer = tk.Frame(self, bg=APP_BG)
         outer.place(relx=0.5, rely=0.5, anchor="center")
