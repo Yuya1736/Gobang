@@ -102,7 +102,6 @@ py tests/concurrency_test.py --tables 8 --port 9620
 ```
 
 请求 `id` 自增用于响应配对；事件由服务器主动推送，无 `id`。
-报文长度上限 1 MB。
 
 主要请求类型：`register`、`login`、`resume`、`logout`、`rooms`、`room.create`、
 `room.join`、`room.leave`、`room.ready`、`room.chat`、`game.move`、`game.resign`、

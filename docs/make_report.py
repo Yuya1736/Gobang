@@ -347,7 +347,7 @@ def build_body():
          "加入/观战、双人准备开局、15×15 五子棋完整规则、房间聊天、简单积分与排行榜，"
          "以及 60 秒宽限期的断线重连。测试方面，10 项冒烟检查全部通过；8 桌并发测试包含 "
          "16 名玩家与 8 名观战者、共 72 手落子，所有房间三方快照一致，平均落子时延约 "
-         "4.8 ms，验证了多桌并发下状态同步的正确性与实时性。")
+         "5.6 ms，验证了多桌并发下状态同步的正确性与实时性。")
     kw = doc.add_paragraph()
     kw.paragraph_format.line_spacing = Pt(20)
     kw.paragraph_format.space_before = Pt(6)
@@ -382,7 +382,7 @@ def build_body():
          "学会自定义请求/响应/事件协议并处理并发、乱序与异常；掌握图形界面程序与网络线程的"
          "解耦方法。")
     para("工程要求：全部通信仅使用回环地址 127.0.0.1，不监听公网接口；服务器与多个客户端"
-         "以独立进程运行；核心代码注释率不低于 30%；以 4 人小组分工完成编码、测试与文档，"
+         "以独立进程运行；代码结构清晰、关键逻辑有注释；以 4 人小组分工完成编码、测试与文档，"
          "最终提交可运行源码、依赖与运行说明以及本说明书。")
 
     # ---------- 2 原理与设计环境 ----------
@@ -391,8 +391,8 @@ def build_body():
     para("TCP 提供面向连接、可靠、全双工的字节流服务，但不保留应用消息边界。若应用层直接"
          "按“一次 send 对应一次 recv”处理，在报文合并或拆分时必然出错（即粘包与半包）。"
          "本系统采用换行符作为帧定界：每条报文是一行 UTF-8 编码的 JSON，接收端使用带缓冲的"
-         "按行读取，一次读取恰好得到一条完整报文；同时对单条报文设置 1 MB 上限，超长即断开，"
-         "防止恶意报文耗尽内存。JSON 具备自描述、可读、跨语言的特点，便于调试与抓包分析。")
+         "按行读取，一次读取恰好得到一条完整报文。JSON 具备自描述、可读、跨语言的特点，"
+         "便于调试与抓包分析。")
     para("在消息语义上，系统采用“请求—响应 + 服务器事件”的混合模型。客户端请求携带自增 id，"
          "服务器响应原样回传该 id，从而在同一条 TCP 连接上实现多请求的并发关联；房间状态、"
          "聊天与对局结束等由服务器主动推送，事件不带 id，客户端按事件名分发。心跳请求每 15 秒"
@@ -412,8 +412,8 @@ def build_body():
          "又因为客户端可能先收到较新的广播、后收到较旧的响应，每次广播都递增房间 revision，"
          "客户端只接受不小于当前版本的快照，从根本上避免棋盘“回退”。")
     para("持久化层使用单个 JSON 文件，Database 实例以 RLock 串行化全部读写，每次修改先写"
-         "同目录临时文件并 fsync，再用 os.replace 原子替换正式文件，避免进程崩溃留下半截"
-         " JSON；账号密码采用 PBKDF2-HMAC-SHA256（12 万次迭代、随机盐）存储，校验使用"
+         "同目录临时文件，再用 os.replace 替换正式文件，避免进程崩溃留下半截 JSON；"
+         "账号密码采用 PBKDF2-HMAC-SHA256（12 万次迭代、随机盐）存储，校验使用"
          "恒定时间比较，任何接口都不返回密码哈希与盐。")
     heading("2.3 设计环境", 2)
     add_table(
@@ -444,19 +444,19 @@ def build_body():
          "课程设计在本机以多进程模拟网络对战的要求。")
     heading("3.2 模块划分", 2)
     para("工程按职责划分为协议、服务器、客户端与测试四组模块，主要文件及规模见表 3-1。"
-         "核心业务模块（协议、服务器各模块与客户端网络层）注释率约 31%，界面代码约 18%，"
-         "注释重点说明线程模型、锁约定、协议语义与非显然的边界条件。")
+         "代码以短小函数和完整快照为核心组织，注释重点说明线程模型、锁约定、协议语义与"
+         "非显然的边界条件。")
     add_table(
         ["文件", "行数", "主要职责"],
         [
-            ["common/protocol.py", "79", "协议常量、单行 JSON 编解码、报文长度限制"],
-            ["server/app.py", "943", "accept 循环、请求分发、房间/会话/结算管理"],
-            ["server/game.py", "171", "棋盘状态、落子校验、五连判定与认输"],
-            ["server/room.py", "211", "房间席位、准备状态、观战者、聊天与快照"],
-            ["server/session.py", "104", "会话对象、断线标记、重连绑定与发送串行化"],
-            ["server/database.py", "349", "账号、简单积分、排行榜与对局记录"],
-            ["client/net.py", "218", "客户端连接、接收线程、请求关联、心跳"],
-            ["client/ui.py", "1498", "Tkinter 三视图界面、棋盘绘制与事件处理"],
+            ["common/protocol.py", "52", "协议常量、单行 JSON 编解码"],
+            ["server/app.py", "627", "accept 循环、请求分发、房间/会话/结算管理"],
+            ["server/game.py", "99", "棋盘状态、落子校验、五连判定与认输"],
+            ["server/room.py", "145", "房间席位、准备状态、观战者、聊天与快照"],
+            ["server/session.py", "60", "会话对象、掉线标记、重连绑定与发送串行化"],
+            ["server/database.py", "175", "账号、简单积分、排行榜与对局记录"],
+            ["client/net.py", "149", "客户端连接、接收线程、请求关联、心跳"],
+            ["client/ui.py", "1280", "Tkinter 三视图界面、棋盘绘制与事件处理"],
             ["run_server.py / run_client.py", "10 / 10", "服务器与客户端启动入口"],
             ["tests/", "约 990", "协议客户端、冒烟测试、并发测试与演示脚本"],
         ],
@@ -495,8 +495,8 @@ def build_body():
     heading("4.1 服务器连接管理与请求分发", 2)
     para("服务器启动后绑定回环地址并进入 accept 循环，为每个新连接设置读超时与 TCP "
          "Keep-Alive，随后启动一个守护线程执行读取循环。读取循环按行读取请求，单条报文"
-         "格式错误只返回错误响应而不断开连接，超长报文则直接断开；连接结束（正常关闭、"
-         "异常或巡检关闭）统一进入断开处理，标记会话离线并启动宽限期计时器。")
+         "格式错误只返回错误响应而不断开连接；连接结束（正常关闭、异常或读超时）统一进入"
+         "断开处理，标记会话离线并记录掉线时间。")
     para("所有请求由 self.handlers 字典映射到处理函数，统一签名为 (session, data, conn)。"
          "分发器负责校验登录态（register、login、resume、ping 允许匿名）、调用处理器、"
          "把业务异常转换为 ok=false 的响应，并对未预期异常记录堆栈而不向客户端泄露内部"
@@ -511,7 +511,7 @@ result = handler(session, data, conn) or {}
 self._reply(conn, req_id, True, result)''')
     heading("4.2 房间模型与状态同步", 2)
     para("房间对象包含固定两个玩家席位（seat 0/1）、观战者列表、聊天环形队列（上限 100 条）、"
-         "当前对局、局号与已结算局号，以及快照版本号 revision。房间状态由对局推导：无对局为"
+         "当前对局与局号，以及快照版本号 revision。房间状态由对局推导：无对局为"
          "等待、对局未结束为对战中、对局结束为已结束，从而避免状态字段与对局状态不一致。"
          "玩家席位只决定顺序，棋子颜色每局按局号轮换，保证连续对局时双方先手机会均等。")
     para("每次状态变化都调用 push_room 广播完整快照。快照以观察者为中心：除棋盘、轮次、"
@@ -520,14 +520,12 @@ self._reply(conn, req_id, True, result)''')
          "事件增量追加，避免每条状态报文重复携带全部历史。关键代码如下：")
     code_block('''def push_room(self, room):
     with room.lock:
-        # 每次广播递增版本号，保证客户端能识别并丢弃迟到的旧快照
         room.revision += 1
-        members = [s.username for s in room.players] + list(room.spectators)
         snapshots = {name: room.snapshot(name, include_chat=False)
-                     for name in members}
+                     for name in room.members()}
     for name, snap in snapshots.items():
         sess = self.online.get(name)
-        if sess is not None and sess.connected:
+        if sess is not None and sess.online:
             sess.send({"type": "event", "event": "room_state", "data": snap})
     self.broadcast_lobby()''')
     para("快照在锁内一次性生成，网络发送移到锁外，慢客户端不会阻塞其他线程；离线成员被"
@@ -539,19 +537,17 @@ self._reply(conn, req_id, True, result)''')
          "是否为空；任一失败抛出 MoveError，由分发器转换为错误响应。合法落子后只从最后落子"
          "点沿横、竖、主对角线、副对角线四个方向正反延伸统计同色棋子，长度达到 5 即获胜，"
          "复杂度为 O(1)，无需全盘扫描；棋盘下满且无人五连则判平局。认输与掉线判负都只设置"
-         "终局字段，积分结算统一由上层完成；forfeit 具有幂等性，可被宽限期定时器与巡检线程"
+         "终局字段，积分结算统一由上层完成；forfeit 具有幂等性，可被巡检线程与其它结算路径"
          "重复触发而不重复结算。")
     code_block('''def _find_five(self, row, col, stone):
     for dr, dc in DIRECTIONS:
         cells = [(row, col)]
         r, c = row + dr, col + dc
-        while 0 <= r < BOARD_SIZE and 0 <= c < BOARD_SIZE \\
-                and self.board[r][c] == stone:
+        while 0 <= r < BOARD_SIZE and 0 <= c < BOARD_SIZE and self.board[r][c] == stone:
             cells.append((r, c))
             r, c = r + dr, c + dc
         r, c = row - dr, col - dc
-        while 0 <= r < BOARD_SIZE and 0 <= c < BOARD_SIZE \\
-                and self.board[r][c] == stone:
+        while 0 <= r < BOARD_SIZE and 0 <= c < BOARD_SIZE and self.board[r][c] == stone:
             cells.insert(0, (r, c))
             r, c = r - dr, c - dc
         if len(cells) >= 5:
@@ -576,17 +572,18 @@ self._reply(conn, req_id, True, result)''')
     self.snapshot = snapshot
     # ... 依据快照整体重绘棋盘、玩家卡片、按钮与聊天区''')
     heading("4.5 断线重连与会话状态机", 2)
-    para("连接断开时，服务器只把会话标记为离线并保留房间席位与对局，同时启动 60 秒宽限期"
-         "定时器；客户端检测到 __disconnected__ 事件后，在 45 秒内按 1.5 秒间隔反复连接并"
-         "调用 resume。重连成功时服务器取消定时器、绑定新连接，返回当前房间的完整快照，"
-         "客户端据此直接回到原对局界面；宽限期满仍未重连，则掉线方判负、结算积分、释放席位"
-         "并销毁会话。状态机如图 4-2 所示，完整对局时序如图 4-1 所示。")
+    para("连接断开时，服务器只把会话标记为离线并保留房间席位与对局，记录掉线时间；巡检线程"
+         "每 5 秒检查一次，超过 60 秒仍未重连则判负、结算积分、释放席位并销毁会话。客户端"
+         "检测到 __disconnected__ 事件后，在 45 秒内按 1.5 秒间隔反复连接并调用 resume；"
+         "重连成功时服务器绑定新连接、清除掉线时间，并返回当前房间的完整快照，客户端据此"
+         "直接回到原对局界面。状态机如图 4-2 所示，完整对局时序如图 4-1 所示。")
     add_figure("00_sequence.png", "图 4-1  一次完整对局的通信时序", 14.4)
     add_figure("00_reconnect.png", "图 4-2  断线重连与会话状态机", 13.5)
-    para("重连实现的关键是“先取消定时器、再关闭旧连接”：定时器若不取消，到点会把刚恢复的"
-         "会话判负；旧连接关闭处理中会依据连接对象判断，不会误伤已改绑的新连接。")
+    para("重连实现的关键是“清除离线标记并检查连接归属”：绑定新连接时把 offline_since 置空，"
+         "巡检线程便不会再处理该会话；旧连接的关闭处理会检查会话当前连接，不会误伤已改绑"
+         "的新连接。")
     heading("4.6 数据存储与积分计算", 2)
-    para("持久化采用单个 JSON 文件，根对象包含 version、自增序号与 users、matches 两个数组："
+    para("持久化采用单个 JSON 文件，根对象包含自增序号与 users、matches 两个数组："
          "users 保存账号、密码哈希、盐、积分与胜负平场次，matches 保存每局的对局记录。"
          "密码使用 PBKDF2-HMAC-SHA256（12 万次迭代、16 字节随机盐）派生，登录校验采用"
          "恒定时间比较；对外接口只返回 id、用户名、积分与战绩，哈希与盐不出数据层。")
@@ -675,8 +672,8 @@ self._reply(conn, req_id, True, result)''')
     add_figure("05_ranking.png", "图 5-5  积分排行榜与胜负场次", 11.2)
     heading("5.4 结果分析", 2)
     para("在回环环境下，一次落子的端到端时延由客户端排队、JSON 编解码、服务器加锁校验、"
-         "快照生成与广播、客户端重绘组成。实测 8 桌并发时平均时延约 4.8 ms，最大单次时延"
-         "约 13 ms，说明锁粒度较细、临界区较短；每桌的版本号严格随广播递增，未发现快照"
+         "快照生成与广播、客户端重绘组成。实测 8 桌并发时平均时延约 5.6 ms，最大单次时延"
+         "约 11 ms，说明锁粒度较细、临界区较短；每桌的版本号严格随广播递增，未发现快照"
          "乱序或回退。")
     para("系统的瓶颈主要在三处：一是线程模型，连接数达到数百后线程调度与栈内存开销会上升，"
          "可改为 selectors/异步 I/O；二是完整快照广播，房间成员越多、报文越大，当前 2 名"
@@ -710,16 +707,16 @@ self._reply(conn, req_id, True, result)''')
         size=9.5, center_cols=(3,))
     heading("6.2 主要问题与解决方法", 2)
     para("（1）TCP 粘包与半包。最初按定长读取，不同长度的 JSON 报文会互相粘连。改为"
-         "makefile(\"rb\") 配合 readline 按换行切分，并限制单行最大长度为 1 MB，问题彻底消除。")
+         "makefile(\"rb\") 配合 readline 按换行切分，问题彻底消除。")
     para("（2）响应与事件并发写导致字节流交错。同一连接的响应由处理线程发送、事件由广播"
          "线程发送，曾出现两条 JSON 拼在一起导致客户端解析失败。为每个会话增加发送锁，"
          "所有写操作统一经过会话发送方法串行化。")
     para("（3）广播快照乱序造成棋盘回退。落子响应可能比随后的 room_state 事件更晚到达，"
          "客户端用旧快照覆盖新棋盘。引入房间 revision，每次广播递增，客户端只接受版本不"
          "低于当前值的快照。")
-    para("（4）掉线判负与重连的竞态。宽限期定时器可能在重连成功后仍触发，或与巡检线程"
-         "同时判负。解决方法是：重连绑定新连接时先取消定时器；判负方法具备幂等性；同一局"
-         "通过 settled_serial 保证只结算一次。")
+    para("（4）掉线判负与重连的竞态。巡检线程可能把刚重连成功的会话误判为超时，或与其它"
+         "结算路径同时判负。解决方法是：重连绑定新连接时清除离线时间；判负方法具备幂等性；"
+         "同一局通过 game.settled 保证只结算一次。")
     para("（5）关闭连接时的死锁。接收线程阻塞在 readline，主线程直接关闭 BufferedReader "
          "会等待读锁而卡死。改为先 shutdown 再 close 套接字唤醒读线程，并让接收线程自行"
          "退出。")
@@ -783,17 +780,10 @@ S→C  {"type":"resp","id":2,"ok":true,"data":{"room_id":1}}
 S→C  {"type":"event","event":"room_state",
       "data":{"room_id":1,"revision":1,"game":null,...}}''')
     para("会话重连的核心实现（server/session.py）：")
-    code_block('''def rebind(self, conn):
-    """断线重连成功：绑定新连接并恢复在线状态。"""
-    old = self.conn
-    self.conn = conn
-    self.connected = True
-    self.disconnected_at = None
-    self.last_seen = time.time()
-    # 先取消宽限期定时器，否则到点会把刚恢复的会话判负
-    if self.grace_timer is not None:
-        self.grace_timer.cancel()
-        self.grace_timer = None
+    code_block('''def bind(self, conn):
+    """断线重连：绑定新连接并恢复在线状态。"""
+    old, self.conn = self.conn, conn
+    self.offline_since = None
     if old is not None and old is not conn:
         try:
             old.close()
@@ -801,15 +791,13 @@ S→C  {"type":"event","event":"room_state",
             pass''')
     para("帧定界与 JSON 编解码（common/protocol.py）：")
     code_block('''def encode_message(obj):
-    raw = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
-    data = raw.encode("utf-8")
-    if len(data) > MAX_LINE_BYTES:
-        raise ProtocolError("报文超过最大长度限制")
-    return data + b"\\n"
+    return (json.dumps(obj, ensure_ascii=False) + "\\n").encode("utf-8")
 
 def decode_message(line):
-    text = line.decode("utf-8").strip()
-    obj = json.loads(text)        # 失败时抛出 ProtocolError
+    try:
+        obj = json.loads(line.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ProtocolError("报文解析失败: %s" % exc) from exc
     if not isinstance(obj, dict):
         raise ProtocolError("报文必须是 JSON 对象")
     return obj''')
